@@ -1,103 +1,163 @@
-import Image from "next/image";
+'use client'
+import Link from 'next/link';
+
+interface Video {
+  id: number;
+  width: number;
+  height: number;
+  duration: number;
+  user_name: string;
+  video_files: any[]; // podes tipar melhor se souberes a estrutura
+  video_pictures: { id: number; nr: number; picture: string }[];
+}
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image'
+import { useVideoFilters } from './store/videoFilters';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { size, locale } = useVideoFilters();
+  const perPage = 16;
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [isGrid, setIsGrid] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const fetchVideos = useCallback(async () => {
+    setLoading(true);
+    try {
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          per_page: String(isGrid ? perPage : 10),
+        });
+
+        if (size) params.append('size', size);
+        if (locale) params.append('locale', locale);
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/videos?${params.toString()}`, {
+          headers: {
+            'X-API-TOKEN': process.env.NEXT_PUBLIC_API_TOKEN as string,
+          },
+        });
+      const data = await response.json();
+      setVideos(Array.isArray(data.data.items) ? data.data.items : []);
+      setTotal(data.data.total_pages);
+    } catch (error) {
+      console.error('Erro ao carregar vídeos:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, size, locale, isGrid]);
+
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
+
+  const totalPages = total;
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  return (
+      <div className="mx-10 my-8">
+        <div className="flex justify-end items-end gap-6">
+            <button
+                className={`p-2 rounded ${isGrid ? 'bg-[#10B981]' : 'bg-white'} hover:opacity-80`}
+                onClick={() => setIsGrid(true)}
+            >
+                <Image src="/grid.svg" className="w-8 h-8" alt="teste2" width={100} height={100} />
+            </button>
+
+            <button
+                className={`p-2 rounded ${!isGrid ? 'bg-[#10B981]' : 'bg-white'} hover:opacity-80`}
+                onClick={() => setIsGrid(false)}
+            >
+                <Image src="/list.svg" className="w-8 h-8" alt="teste" width={50} height={50} />
+            </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        {loading && (
+          <div className="text-center py-8 text-lg text-gray-600 animate-pulse">
+            A carregar vídeos...
+          </div>
+        )}
+        {!loading && (
+          <>
+            <div className={isGrid ? 'grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 items-center justify-center gap-4 mt-2' : 'grid grid-cols-1'}>
+              {videos.map((video: Video, index) => (
+                <Link href={`video/${video.id}`} key={index}>
+                  <div className="flex cursor-pointer hover:opacity-90">
+                    <div>
+                      <img src={video.video_pictures?.[0]?.picture || '/fallback.png'} alt={`video-${index}`} className='md:w-[320px] lg:w-[500px] h-75 object-cover object-center' />
+                    </div>
+                    <div className={`${isGrid ? 'block md:hidden' : 'block'} ml-4`}>
+                      <p className="text-xl text-[#10B981] font-bold">{video.user_name}</p>
+                      <p>ID: {video.id}</p>
+                      <p>Duração: {video.duration}s</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div id={'pagination'} className="justify-end items-end flex">
+              <div className="flex justify-center mt-4 gap-2">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 text-black"
+                >
+                  Anterior
+                </button>
+
+                {currentPage > 2 && (
+                  <>
+                    <button
+                      onClick={() => goToPage(1)}
+                      className={`px-3 py-1 rounded ${currentPage === 1 ? 'bg-[#10B981] text-white' : 'bg-white text-black'}`}
+                    >
+                      1
+                    </button>
+                    {currentPage > 3 && <span className="px-2">...</span>}
+                  </>
+                )}
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => Math.abs(currentPage - page) <= 1)
+                  .map(page => (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`px-3 py-1 rounded ${currentPage === page ? 'bg-[#10B981] text-white' : 'bg-white text-black'}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                {currentPage < totalPages - 1 && (
+                  <>
+                    {currentPage < totalPages - 2 && <span className="px-2">...</span>}
+                    <button
+                      onClick={() => goToPage(totalPages)}
+                      className={`px-3 py-1 rounded ${currentPage === totalPages ? 'bg-[#10B981] text-white' : 'bg-white text-black'}`}
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50 text-black"
+                >
+                  Seguinte
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
   );
 }
